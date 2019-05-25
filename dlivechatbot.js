@@ -4,7 +4,8 @@
 // @version      0.1
 // @description  A chat bot for dlive.
 // @author       NerveClasp
-// @match        https://dlive.tv/c/NerveClasp/nerveclasp*
+// @match        https://dlive.tv/c/NerveClasp*
+// @match        https://dlive.tv/NerveClasp*
 // @grant        none
 // ==/UserScript==
 
@@ -12,40 +13,47 @@ const message = new Audio(sound('message'));
 const follow = new Audio(sound('follow'));
 const donation = new Audio(sound('donation'));
 let messages = [];
-let followers = [];
+let followers = {};
+let donations = {};
 
-const notify = ({ oldArray, newArray, sound }) => {
-  if (newArray.length !== oldArray.length) {
-    sound.play();
-  }
-}
-
-const notifyDonations = ({ oldDonations, newDonations, sound }) => {
-  newDonations.forEach(({ amount }, i) => {
-    const old = oldDonations[i];
+const notifyDonations = newDonations => {
+  Object.keys(newDonations).forEach((userName) => {
+    const d = newDonations[userName];
+    const old = donations[userName];
     if (!old) {
       sound.play();
       return null;
     }
-    if (old.amount !== amount) {
-      sound.play();
-    }
+    Object.keys(d).forEach(kind => {
+      if (!old[kind]) {
+        sound.play();
+        return null;
+      }
+      if (old[kind].amount < d[kind].amount) {
+        sound.play();
+      }
+    })
   })
 }
 
+const notifyNewFollowers = newFollowers =>
+  Object.keys(newFollowers).forEach(follower => {
+    if (!followers[follower]) follow.play();
+  });
+
 const getData = () => {
   const newMessages = Array.from(document.querySelectorAll('.text')).map(row => row.innerText.trim());
-  const newFollowers = [];
-  const newDonations = [];
+  const newFollowers = {};
+  const newDonations = {};
   Array.from(document.querySelectorAll('.notice-line')).forEach(notice => {
     const user = notice.querySelector('.chatrow-link').innerText;
     const donat = notice.querySelector('.float-left');
     if (donat) {
       const amount = donat.querySelectorAll('span')[0].innerText;
       const kind = donat.querySelectorAll('span')[1].innerText;
-      newDonations.push({ user, amount, kind });
+      newDonations[user][kind] = { amount };
     } else {
-      newFollowers.push(user);
+      newFollowers[user] = 'followed';
     }
   });
   return { newMessages, newFollowers, newDonations };
@@ -53,22 +61,24 @@ const getData = () => {
 
 const update = ({ newMessages, newFollowers, newDonations }) => {
   messages = newMessages;
-  followers = newFollowers;
-  donations = newDonations;
+  followers = { ...followers, ...newFollowers };
+  donations = { ...donations, ...newDonations };
 }
 
 const check = () => {
   const { newMessages, newFollowers, newDonations } = getData();
 
-  notify({ oldArray: messages, newArray: newMessages, sound: message });
-  notify({ oldArray: followers, newArray: newFollowers, sound: follow });
-  notifyDonations({ oldDonations: donations, newDonations, sound: donation });
+  if (newMessages.length !== messages.length) {
+    message.play();
+  }
+  notifyDonations(newDonations);
 
   update({ newMessages, newFollowers, newDonations });
 }
 
 const onLoad = () => {
   update(getData());
+  console.log({ messages, donations, followers })
   setInterval(check, 3000);
 }
 
