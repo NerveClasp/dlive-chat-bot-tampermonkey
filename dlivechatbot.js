@@ -49,7 +49,7 @@ const getData = () => {
     const user = notice.querySelector('.chatrow-link').innerText;
     const donat = notice.querySelector('.float-left');
     if (donat) {
-      const amount = donat.querySelectorAll('span')[0].innerText;
+      const amount = parseInt(donat.querySelectorAll('span')[0].innerText.trim());
       const kind = donat.querySelectorAll('span')[1].innerText;
       newDonations[user][kind] = { amount };
     } else {
