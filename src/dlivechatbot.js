@@ -1,55 +1,73 @@
 // ==UserScript==
 // @name         DLive Chat Bot
-// @namespace    http://tampermonkey.net/
-// @version      0.1
+// @namespace    https://raw.githubusercontent.com/NerveClasp/dlive-chat-bot-tampermonkey/
+// @version      0.2
 // @description  A chat bot for dlive.
 // @author       NerveClasp
-// @match        https://dlive.tv/c/NerveClasp*
-// @match        https://dlive.tv/NerveClasp*
-// @grant        none
+// @icon         https://raw.githubusercontent.com/NerveClasp/dlive-chat-bot-tampermonkey/master/dlive-logo.png
+// @match        https://dlive.tv/*
+// @grant        GM_xmlhttpRequest
+// @updateURL    https://raw.githubusercontent.com/NerveClasp/dlive-chat-bot-tampermonkey/master/src/dlivechatbot.js
 // ==/UserScript==
 
-const message = new Audio(sound('message'));
-const follow = new Audio(sound('follow'));
-const donation = new Audio(sound('donation'));
+// TODO: add configuration ability
+const watchPage = 'https://dlive.tv/NerveClasp';
+const soundMessage = new Audio(sound('message'));
+const soundFollow = new Audio(sound('follow'));
+const soundDonation = new Audio(sound('donation'));
+soundMessage.volume = 0.2;
+soundFollow.volume = 0.2;
+soundDonation.volume = 0.5;
+
 let messages = [];
 let followers = {};
 let donations = {};
 
 const notifyDonations = newDonations => {
-  Object.keys(newDonations).forEach((userName) => {
+  Object.keys(newDonations).forEach(userName => {
     const d = newDonations[userName];
     const old = donations[userName];
     if (!old) {
-      sound.play();
+      soundDonation.play();
       return null;
     }
     Object.keys(d).forEach(kind => {
       if (!old[kind]) {
-        sound.play();
+        soundDonation.play();
         return null;
       }
       if (old[kind].amount < d[kind].amount) {
-        sound.play();
+        soundDonation.play();
       }
-    })
-  })
-}
+    });
+  });
+};
 
 const notifyNewFollowers = newFollowers =>
   Object.keys(newFollowers).forEach(follower => {
-    if (!followers[follower]) follow.play();
+    if (!followers[follower]) soundFollow.play();
   });
 
 const getData = () => {
-  const newMessages = Array.from(document.querySelectorAll('.text')).map(row => row.innerText.trim());
+  const newMessages = Array.from(document.querySelectorAll('.chatrow-inner'))
+    .filter(row => !row.classList.contains('notice-line'))
+    .map(row => {
+      const user = row.querySelector('.sender-name').innerText.trim();
+      const message = row
+        .querySelector('.linkify')
+        .innerText.trim()
+        .replace(/\n|  /gm, '');
+      return { user, message };
+    });
   const newFollowers = {};
   const newDonations = {};
   Array.from(document.querySelectorAll('.notice-line')).forEach(notice => {
     const user = notice.querySelector('.chatrow-link').innerText;
     const donat = notice.querySelector('.float-left');
     if (donat) {
-      const amount = parseInt(donat.querySelectorAll('span')[0].innerText.trim());
+      const amount = parseInt(
+        donat.querySelectorAll('span')[0].innerText.trim()
+      );
       const kind = donat.querySelectorAll('span')[1].innerText;
       newDonations[user][kind] = { amount };
     } else {
@@ -57,30 +75,41 @@ const getData = () => {
     }
   });
   return { newMessages, newFollowers, newDonations };
-}
+};
 
 const update = ({ newMessages, newFollowers, newDonations }) => {
   messages = newMessages;
   followers = { ...followers, ...newFollowers };
   donations = { ...donations, ...newDonations };
-}
+};
 
 const check = () => {
+  if (
+    document.location.href !== watchPage ||
+    !document.querySelector('#chatroom')
+  )
+    return;
+
   const { newMessages, newFollowers, newDonations } = getData();
 
-  if (newMessages.length !== messages.length) {
-    message.play();
+  if (
+    messages.length > 0 &&
+    JSON.stringify(newMessages) !== JSON.stringify(messages)
+  ) {
+    console.log('new messages');
+    soundMessage.play();
   }
   notifyDonations(newDonations);
+  notifyNewFollowers(newFollowers);
 
   update({ newMessages, newFollowers, newDonations });
-}
+};
 
 const onLoad = () => {
   update(getData());
-  console.log({ messages, donations, followers })
+  console.log({ messages, donations, followers });
   setInterval(check, 3000);
-}
+};
 
 window.onload = onLoad;
 

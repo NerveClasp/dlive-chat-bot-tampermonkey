@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Chat</title>
+    <script>
+      let messages = [];
+      setInterval(() => {
+        const chat = document.querySelector('#chat');
+        fetch('http://localhost:3000/api/messages', {
+          method: 'GET',
+        })
+          .then(resp => {
+            return resp.clone().json();
+          })
+          .then(json => {
+            if (chat && JSON.stringify(messages) !== JSON.stringify(json)) {
+              chat.innerHTML = json
+                .map(m => `<p class="message">${m}</p>`)
+                .join('');
+              messages = json;
+            }
+          })
+          .catch(err => console.log('err', err));
+      }, 3000);
+    </script>
+    <style>
+      .message {
+        padding: 8px;
+        margin: 8px;
+        border-radius: 3px;
+        background-color: rgba(102, 102, 102, 0.5);
+        color: #ffcc66;
+        font-size: 16px;
+        font-weight: 800;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chat"></div>
+  </body>
+</html>
