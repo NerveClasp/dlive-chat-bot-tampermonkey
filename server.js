@@ -1,7 +1,8 @@
 const fetch = require('node-fetch');
 const fs = require('fs');
-var express = require('express');
-var app = express();
+const express = require('express');
+const app = express();
+const config = require('./config.json');
 
 const showLastN = 6;
 let followers = {};
@@ -18,10 +19,11 @@ setInterval(() => {
       fingerprint: '',
       gacid: '1409962316.1558770788',
     },
-    referrer: 'https://dlive.tv/NerveClasp',
+    referrer: `https://dlive.tv/${config.userName}`,
     referrerPolicy: 'no-referrer-when-downgrade',
-    body:
-      '{"operationName":"LivestreamChatroomInfo","variables":{"displayname":"NerveClasp","isLoggedIn":false,"limit":20},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"c38d67b66455636fee3e0c3f96e5aa53cf344cc99386def56de6b51a27ae36a7"}}}',
+    body: `{"operationName":"LivestreamChatroomInfo","variables":{"displayname":"${
+      config.userName
+    }","isLoggedIn":false,"limit":20},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"c38d67b66455636fee3e0c3f96e5aa53cf344cc99386def56de6b51a27ae36a7"}}}`,
     method: 'POST',
     mode: 'cors',
   })
@@ -33,7 +35,11 @@ setInterval(() => {
         const { type, content, sender, gift, amount } = c;
         switch (type) {
           case 'Message':
-            newMessages.push(`${sender.displayname}: ${content.trim()}`);
+            newMessages.push({
+              sender: sender.displayname,
+              avatar: sender.avatar,
+              message: content,
+            });
             break;
           case 'Gift':
             break;
@@ -43,11 +49,11 @@ setInterval(() => {
             break;
         }
       });
-      fs.writeFile('chat.txt', messages.join('\n'), err => {
-        if (err) console.log(err);
-      });
+      // skip saving to text file for now
+      // fs.writeFile('chat.txt', messages.join('\n'), err => {
+      //   if (err) console.log(err);
+      // });
       messages = newMessages;
-      // console.log('json', json);
     })
     .catch(err => console.log('err', err));
 }, 3000);

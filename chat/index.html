@@ -7,19 +7,36 @@
     <title>Chat</title>
     <script>
       let messages = [];
+      const emoteRegexp = /:emote\/[\w]{2,10}\/dlive-[\d]{4,12}\/([\w\d_]+):/gm;
+      const messageHTML = ({ avatar, sender, message }) => {
+        const parsedMessage = message.replace(
+          emoteRegexp,
+          (_, match) =>
+            `<img class="emote" src="https://images.prd.dlivecdn.com/emote/${match}" />`
+        );
+
+        return `
+<p class="message">
+  <img class="avatar" src="${avatar}" />
+  <span class="sender">${sender}:</span>
+  <span class="text">${parsedMessage}</span>
+</p>`;
+      };
       setInterval(() => {
         const chat = document.querySelector('#chat');
-        fetch('http://localhost:3000/api/messages', {
+        fetch(`/api/messages`.replace(/\/\//gm, '/'), {
           method: 'GET',
         })
           .then(resp => {
             return resp.clone().json();
           })
           .then(json => {
-            if (chat && JSON.stringify(messages) !== JSON.stringify(json)) {
-              chat.innerHTML = json
-                .map(m => `<p class="message">${m}</p>`)
-                .join('');
+            if (
+              json &&
+              chat &&
+              JSON.stringify(messages) !== JSON.stringify(json)
+            ) {
+              chat.innerHTML = json.map(messageHTML).join('');
               messages = json;
             }
           })
@@ -28,14 +45,28 @@
     </script>
     <style>
       .message {
+        display: flex;
         padding: 8px;
         margin: 8px;
         border-radius: 3px;
         background-color: rgba(102, 102, 102, 0.5);
-        color: #ffcc66;
         font-size: 16px;
         font-weight: 800;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+      }
+      .avatar {
+        height: 16px;
+        padding-right: 4px;
+      }
+      .sender {
+        color: #ffcc66;
+      }
+      .text {
+        padding-left: 8px;
+        color: white;
+      }
+      .emote {
+        height: 32px;
       }
     </style>
   </head>
