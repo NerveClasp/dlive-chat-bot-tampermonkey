@@ -36,7 +36,7 @@
   "homepage": "https://github.com/NerveClasp/dlive-chat-bot-tampermonkey#readme",
   "dependencies": {
     "express": "^4.17.1",
-    "node-fetch": "^2.6.0"
+    "node-fetch": "^2.6.1"
   },
   "devDependencies": {
     "husky": "^2.3.0",
